@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadImageFromFile } from './utils/loadImage'
+import { FilterRenderer } from './engine/renderer'
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rendererRef = useRef<FilterRenderer | null>(null)
   const [image, setImage] = useState<HTMLImageElement | null>(null)
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -12,17 +14,16 @@ function App() {
     setImage(loadedImage)
   }
 
-  // 이미지가 바뀔 때마다 캔버스 크기를 이미지에 맞추고 그려줍니다.
+  // 이미지가 바뀔 때마다 WebGL 렌더러에 새 사진을 넘겨 다시 그리게 합니다.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !image) return
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width = image.naturalWidth
-    canvas.height = image.naturalHeight
-    ctx.drawImage(image, 0, 0)
+    // 렌더러(WebGL2 컨텍스트, 셰이더 프로그램)는 캔버스당 한 번만 만들면 되므로 재사용합니다.
+    if (!rendererRef.current) {
+      rendererRef.current = new FilterRenderer(canvas)
+    }
+    rendererRef.current.setImage(image)
   }, [image])
 
   return (
