@@ -1,11 +1,12 @@
 // WebGL2 렌더러
 // 역할: 캔버스에 WebGL2 컨텍스트를 열고, 셰이더 프로그램을 만들고,
 //       사진을 텍스처로 GPU에 올려서 화면에 그리는 전체 파이프라인을 담당합니다.
-// 지금 단계에서는 pass-through 셰이더(색 변형 없음)만 사용하지만,
-// 앞으로 필터 파라미터가 늘어나도 이 클래스의 구조(텍스처 생성 → 그리기)는 그대로 재사용됩니다.
+// 필터 파라미터(노출/대비/채도/색온도 → 이후 LUT, 그레인 등)가 늘어나도
+// 이 클래스의 구조(텍스처 생성 → 유니폼 갱신 → 그리기)는 그대로 재사용됩니다.
 
-import { VERTEX_SHADER_SOURCE } from './shaders/passthrough.vert'
-import { FRAGMENT_SHADER_SOURCE } from './shaders/passthrough.frag'
+import { VERTEX_SHADER_SOURCE } from './shaders/main.vert'
+import { FRAGMENT_SHADER_SOURCE } from './shaders/main.frag'
+import { DEFAULT_FILTER_PARAMS, type FilterParams } from './params'
 
 // 셰이더 소스 문자열을 컴파일해서 GPU가 실행 가능한 셰이더 객체로 만듭니다.
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
@@ -51,11 +52,22 @@ function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmen
   return program
 }
 
+// 유니폼(셰이더에 넘길 슬라이더 값들)의 위치를 미리 찾아 캐시해 둡니다.
+interface UniformLocations {
+  image: WebGLUniformLocation | null
+  exposure: WebGLUniformLocation | null
+  contrast: WebGLUniformLocation | null
+  saturation: WebGLUniformLocation | null
+  temperature: WebGLUniformLocation | null
+}
+
 export class FilterRenderer {
   private canvas: HTMLCanvasElement
   private gl: WebGL2RenderingContext
   private program: WebGLProgram
   private texture: WebGLTexture
+  private uniforms: UniformLocations
+  private params: FilterParams = DEFAULT_FILTER_PARAMS
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -66,6 +78,13 @@ export class FilterRenderer {
     this.gl = gl
 
     this.program = createProgram(gl, VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
+    this.uniforms = {
+      image: gl.getUniformLocation(this.program, 'u_image'),
+      exposure: gl.getUniformLocation(this.program, 'u_exposure'),
+      contrast: gl.getUniformLocation(this.program, 'u_contrast'),
+      saturation: gl.getUniformLocation(this.program, 'u_saturation'),
+      temperature: gl.getUniformLocation(this.program, 'u_temperature'),
+    }
     this.texture = this.createEmptyTexture()
     this.setupGeometry()
   }
@@ -125,7 +144,7 @@ export class FilterRenderer {
   }
 
   // 새 사진을 불러올 때마다 호출합니다. 캔버스 크기를 사진 크기에 맞추고,
-  // 사진 데이터를 GPU 텍스처로 올린 뒤 바로 화면을 다시 그립니다.
+  // 사진 데이터를 GPU 텍스처로 올린 뒤 현재 슬라이더 값 그대로 다시 그립니다.
   setImage(image: HTMLImageElement) {
     const gl = this.gl
 
@@ -138,6 +157,12 @@ export class FilterRenderer {
     this.render()
   }
 
+  // 슬라이더가 바뀔 때마다 호출합니다. 값을 저장하고 바로 다시 그립니다.
+  setParams(params: FilterParams) {
+    this.params = params
+    this.render()
+  }
+
   // 실제로 캔버스에 한 프레임을 그립니다.
   render() {
     const gl = this.gl
@@ -147,6 +172,13 @@ export class FilterRenderer {
 
     gl.useProgram(this.program)
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
+
+    // 텍스처 유닛 0번에 바인딩한 텍스처를 u_image가 가리키게 합니다.
+    gl.uniform1i(this.uniforms.image, 0)
+    gl.uniform1f(this.uniforms.exposure, this.params.exposure)
+    gl.uniform1f(this.uniforms.contrast, this.params.contrast)
+    gl.uniform1f(this.uniforms.saturation, this.params.saturation)
+    gl.uniform1f(this.uniforms.temperature, this.params.temperature)
 
     // 정점 4개로 이루어진 삼각형 스트립 = 화면을 덮는 사각형 하나를 그립니다.
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
