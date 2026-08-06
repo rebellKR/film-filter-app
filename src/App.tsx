@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { loadImageFromFile } from './utils/loadImage'
 import { FilterRenderer } from './engine/renderer'
 import { DEFAULT_FILTER_PARAMS, type FilterParams } from './engine/params'
+import { PRESETS } from './engine/presets'
 import { Slider } from './components/Slider'
 
 function App() {
@@ -9,13 +10,25 @@ function App() {
   const rendererRef = useRef<FilterRenderer | null>(null)
   const [image, setImage] = useState<HTMLImageElement | null>(null)
   const [params, setParams] = useState<FilterParams>(DEFAULT_FILTER_PARAMS)
+  const [presetId, setPresetId] = useState(PRESETS[0].id)
+  const [intensity, setIntensity] = useState(100)
+  const [showOriginal, setShowOriginal] = useState(false)
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
     const loadedImage = await loadImageFromFile(file)
+    setPresetId(PRESETS[0].id)
     setParams(DEFAULT_FILTER_PARAMS)
+    setIntensity(100)
     setImage(loadedImage)
+  }
+
+  const handleSelectPreset = (id: string) => {
+    const preset = PRESETS.find((p) => p.id === id)
+    if (!preset) return
+    setPresetId(id)
+    setParams(preset.params)
   }
 
   // 이미지가 바뀔 때마다 WebGL 렌더러에 새 사진을 넘겨 다시 그리게 합니다.
@@ -30,11 +43,21 @@ function App() {
     rendererRef.current.setImage(image)
   }, [image])
 
-  // 슬라이더 값이 바뀔 때마다 같은 사진을 새 값으로 다시 그립니다.
+  // 슬라이더/프리셋 값이 바뀔 때마다 같은 사진을 새 값으로 다시 그립니다.
   useEffect(() => {
     if (!image) return
     rendererRef.current?.setParams(params)
   }, [params, image])
+
+  useEffect(() => {
+    if (!image) return
+    rendererRef.current?.setIntensity(intensity)
+  }, [intensity, image])
+
+  useEffect(() => {
+    if (!image) return
+    rendererRef.current?.setShowOriginal(showOriginal)
+  }, [showOriginal, image])
 
   const updateParam = (key: keyof FilterParams) => (value: number) => {
     setParams((prev) => ({ ...prev, [key]: value }))
@@ -56,7 +79,7 @@ function App() {
 
         const link = document.createElement('a')
         link.href = url
-        link.download = `filmlab_basic_${timestamp}.jpg`
+        link.download = `filmlab_${presetId}_${timestamp}.jpg`
         link.click()
         URL.revokeObjectURL(url)
       },
@@ -76,9 +99,36 @@ function App() {
 
       {image ? (
         <>
-          <canvas ref={canvasRef} className="max-w-full h-auto rounded-lg border border-neutral-800" />
+          {/* 캔버스를 누르고 있는 동안 원본 사진과 비교해서 볼 수 있습니다. */}
+          <canvas
+            ref={canvasRef}
+            className="max-w-full h-auto rounded-lg border border-neutral-800 select-none touch-none"
+            onPointerDown={() => setShowOriginal(true)}
+            onPointerUp={() => setShowOriginal(false)}
+            onPointerLeave={() => setShowOriginal(false)}
+          />
+          <p className="text-xs text-neutral-500 -mt-4">길게 누르면 원본과 비교됩니다</p>
+
+          <div className="w-full max-w-sm flex gap-2 overflow-x-auto pb-1">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleSelectPreset(preset.id)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm ${
+                  presetId === preset.id
+                    ? 'bg-neutral-100 text-neutral-900'
+                    : 'bg-neutral-800 hover:bg-neutral-700'
+                }`}
+              >
+                {preset.name}
+              </button>
+            ))}
+          </div>
 
           <div className="w-full max-w-sm flex flex-col gap-4 rounded-lg border border-neutral-800 p-4">
+            <Slider label="필터 강도" min={0} max={100} value={intensity} onChange={setIntensity} />
+            <hr className="border-neutral-800" />
             <Slider
               label="노출"
               min={-2}

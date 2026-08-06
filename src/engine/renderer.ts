@@ -1,8 +1,8 @@
 // WebGL2 렌더러
 // 역할: 캔버스에 WebGL2 컨텍스트를 열고, 셰이더 프로그램을 만들고,
 //       사진을 텍스처로 GPU에 올려서 화면에 그리는 전체 파이프라인을 담당합니다.
-// 필터 파라미터(노출/대비/채도/색온도 → 이후 LUT, 그레인 등)가 늘어나도
-// 이 클래스의 구조(텍스처 생성 → 유니폼 갱신 → 그리기)는 그대로 재사용됩니다.
+// 필터 파라미터가 늘어나도 이 클래스의 구조(텍스처 생성 → 유니폼 갱신 → 그리기)는
+// 그대로 재사용됩니다.
 
 import { VERTEX_SHADER_SOURCE } from './shaders/main.vert'
 import { FRAGMENT_SHADER_SOURCE } from './shaders/main.frag'
@@ -52,13 +52,75 @@ function createProgram(gl: WebGL2RenderingContext, vertexSource: string, fragmen
   return program
 }
 
-// 유니폼(셰이더에 넘길 슬라이더 값들)의 위치를 미리 찾아 캐시해 둡니다.
+// '#RRGGBB' 형태의 색상 문자열을 셰이더에 넘길 수 있는 0~1 범위의 [r, g, b]로 바꿉니다.
+function hexToRgb(hex: string): [number, number, number] {
+  const value = hex.replace('#', '')
+  const r = parseInt(value.substring(0, 2), 16) / 255
+  const g = parseInt(value.substring(2, 4), 16) / 255
+  const b = parseInt(value.substring(4, 6), 16) / 255
+  return [r, g, b]
+}
+
+// 유니폼(셰이더에 넘길 값들)의 위치를 미리 찾아 캐시해 둡니다.
 interface UniformLocations {
   image: WebGLUniformLocation | null
+  texelSize: WebGLUniformLocation | null
   exposure: WebGLUniformLocation | null
   contrast: WebGLUniformLocation | null
   saturation: WebGLUniformLocation | null
   temperature: WebGLUniformLocation | null
+  tint: WebGLUniformLocation | null
+  vibrance: WebGLUniformLocation | null
+  highlights: WebGLUniformLocation | null
+  shadows: WebGLUniformLocation | null
+  blackLevel: WebGLUniformLocation | null
+  splitHighlightColor: WebGLUniformLocation | null
+  splitHighlightAmount: WebGLUniformLocation | null
+  splitShadowColor: WebGLUniformLocation | null
+  splitShadowAmount: WebGLUniformLocation | null
+  grainAmount: WebGLUniformLocation | null
+  grainSize: WebGLUniformLocation | null
+  halationThreshold: WebGLUniformLocation | null
+  halationRadius: WebGLUniformLocation | null
+  halationColor: WebGLUniformLocation | null
+  halationAmount: WebGLUniformLocation | null
+  bloomAmount: WebGLUniformLocation | null
+  vignetteAmount: WebGLUniformLocation | null
+  sharpenAmount: WebGLUniformLocation | null
+  intensity: WebGLUniformLocation | null
+  showOriginal: WebGLUniformLocation | null
+}
+
+function getUniforms(gl: WebGL2RenderingContext, program: WebGLProgram): UniformLocations {
+  const loc = (name: string) => gl.getUniformLocation(program, name)
+  return {
+    image: loc('u_image'),
+    texelSize: loc('u_texelSize'),
+    exposure: loc('u_exposure'),
+    contrast: loc('u_contrast'),
+    saturation: loc('u_saturation'),
+    temperature: loc('u_temperature'),
+    tint: loc('u_tint'),
+    vibrance: loc('u_vibrance'),
+    highlights: loc('u_highlights'),
+    shadows: loc('u_shadows'),
+    blackLevel: loc('u_blackLevel'),
+    splitHighlightColor: loc('u_splitHighlightColor'),
+    splitHighlightAmount: loc('u_splitHighlightAmount'),
+    splitShadowColor: loc('u_splitShadowColor'),
+    splitShadowAmount: loc('u_splitShadowAmount'),
+    grainAmount: loc('u_grainAmount'),
+    grainSize: loc('u_grainSize'),
+    halationThreshold: loc('u_halationThreshold'),
+    halationRadius: loc('u_halationRadius'),
+    halationColor: loc('u_halationColor'),
+    halationAmount: loc('u_halationAmount'),
+    bloomAmount: loc('u_bloomAmount'),
+    vignetteAmount: loc('u_vignetteAmount'),
+    sharpenAmount: loc('u_sharpenAmount'),
+    intensity: loc('u_intensity'),
+    showOriginal: loc('u_showOriginal'),
+  }
 }
 
 export class FilterRenderer {
@@ -68,6 +130,8 @@ export class FilterRenderer {
   private texture: WebGLTexture
   private uniforms: UniformLocations
   private params: FilterParams = DEFAULT_FILTER_PARAMS
+  private intensity = 1 // 0~1, 필터 강도 (기본 100%)
+  private showOriginal = false // true면 원본을 그대로 보여줌 (길게 눌러 비교하기)
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -78,13 +142,7 @@ export class FilterRenderer {
     this.gl = gl
 
     this.program = createProgram(gl, VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
-    this.uniforms = {
-      image: gl.getUniformLocation(this.program, 'u_image'),
-      exposure: gl.getUniformLocation(this.program, 'u_exposure'),
-      contrast: gl.getUniformLocation(this.program, 'u_contrast'),
-      saturation: gl.getUniformLocation(this.program, 'u_saturation'),
-      temperature: gl.getUniformLocation(this.program, 'u_temperature'),
-    }
+    this.uniforms = getUniforms(gl, this.program)
     this.texture = this.createEmptyTexture()
     this.setupGeometry()
   }
@@ -144,7 +202,7 @@ export class FilterRenderer {
   }
 
   // 새 사진을 불러올 때마다 호출합니다. 캔버스 크기를 사진 크기에 맞추고,
-  // 사진 데이터를 GPU 텍스처로 올린 뒤 현재 슬라이더 값 그대로 다시 그립니다.
+  // 사진 데이터를 GPU 텍스처로 올린 뒤 현재 값 그대로 다시 그립니다.
   setImage(image: HTMLImageElement) {
     const gl = this.gl
 
@@ -157,15 +215,28 @@ export class FilterRenderer {
     this.render()
   }
 
-  // 슬라이더가 바뀔 때마다 호출합니다. 값을 저장하고 바로 다시 그립니다.
+  // 슬라이더나 프리셋이 바뀔 때마다 호출합니다. 값을 저장하고 바로 다시 그립니다.
   setParams(params: FilterParams) {
     this.params = params
+    this.render()
+  }
+
+  // 필터 강도(0~100)를 설정합니다. 0이면 원본, 100이면 보정을 그대로 적용합니다.
+  setIntensity(intensityPercent: number) {
+    this.intensity = intensityPercent / 100
+    this.render()
+  }
+
+  // true를 주면 원본 사진을 그대로 보여줍니다. (버튼을 길게 눌러 비교하는 용도)
+  setShowOriginal(show: boolean) {
+    this.showOriginal = show
     this.render()
   }
 
   // 실제로 캔버스에 한 프레임을 그립니다.
   render() {
     const gl = this.gl
+    const p = this.params
 
     // 캔버스 픽셀 크기만큼 그리기 영역을 맞춥니다.
     gl.viewport(0, 0, this.canvas.width, this.canvas.height)
@@ -175,10 +246,35 @@ export class FilterRenderer {
 
     // 텍스처 유닛 0번에 바인딩한 텍스처를 u_image가 가리키게 합니다.
     gl.uniform1i(this.uniforms.image, 0)
-    gl.uniform1f(this.uniforms.exposure, this.params.exposure)
-    gl.uniform1f(this.uniforms.contrast, this.params.contrast)
-    gl.uniform1f(this.uniforms.saturation, this.params.saturation)
-    gl.uniform1f(this.uniforms.temperature, this.params.temperature)
+    gl.uniform2f(this.uniforms.texelSize, 1 / this.canvas.width, 1 / this.canvas.height)
+
+    gl.uniform1f(this.uniforms.exposure, p.exposure)
+    gl.uniform1f(this.uniforms.contrast, p.contrast)
+    gl.uniform1f(this.uniforms.saturation, p.saturation)
+    gl.uniform1f(this.uniforms.temperature, p.temperature)
+
+    gl.uniform1f(this.uniforms.tint, p.tint)
+    gl.uniform1f(this.uniforms.vibrance, p.vibrance)
+    gl.uniform1f(this.uniforms.highlights, p.highlights)
+    gl.uniform1f(this.uniforms.shadows, p.shadows)
+    gl.uniform1f(this.uniforms.blackLevel, p.blackLevel)
+    gl.uniform3fv(this.uniforms.splitHighlightColor, hexToRgb(p.splitToneHighlight.color))
+    gl.uniform1f(this.uniforms.splitHighlightAmount, p.splitToneHighlight.amount)
+    gl.uniform3fv(this.uniforms.splitShadowColor, hexToRgb(p.splitToneShadow.color))
+    gl.uniform1f(this.uniforms.splitShadowAmount, p.splitToneShadow.amount)
+
+    gl.uniform1f(this.uniforms.grainAmount, p.grainAmount)
+    gl.uniform1f(this.uniforms.grainSize, p.grainSize)
+    gl.uniform1f(this.uniforms.halationThreshold, p.halationThreshold)
+    gl.uniform1f(this.uniforms.halationRadius, p.halationRadius)
+    gl.uniform3fv(this.uniforms.halationColor, hexToRgb(p.halationColor))
+    gl.uniform1f(this.uniforms.halationAmount, p.halationAmount)
+    gl.uniform1f(this.uniforms.bloomAmount, p.bloomAmount)
+    gl.uniform1f(this.uniforms.vignetteAmount, p.vignetteAmount)
+    gl.uniform1f(this.uniforms.sharpenAmount, p.sharpenAmount)
+
+    gl.uniform1f(this.uniforms.intensity, this.intensity)
+    gl.uniform1f(this.uniforms.showOriginal, this.showOriginal ? 1 : 0)
 
     // 정점 4개로 이루어진 삼각형 스트립 = 화면을 덮는 사각형 하나를 그립니다.
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
