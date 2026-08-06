@@ -76,6 +76,27 @@ vec3 sampleGlow(vec2 uv, float radiusPx) {
   return sum / totalWeight;
 }
 
+// 반경 안의 점들을 둘러보면서, threshold보다 밝은 정도("초과분")만 모아 평균을 냅니다.
+// "전체를 블러한 뒤 밝은지 확인"하면 배경이 threshold 근처일 때 화면 전체가 물드는 문제가 생기므로,
+// 먼저 각 샘플에서 밝은 부분만 뽑아낸 다음 그것들을 평균 내는 순서로 계산합니다. (할레이션 전용)
+float sampleBrightExcess(vec2 uv, float radiusPx, float threshold) {
+  float sum = 0.0;
+  float totalWeight = 0.0;
+  const int SAMPLES_PER_RING = 8;
+  for (int ring = 1; ring <= 3; ring++) {
+    float ringRadius = radiusPx * (float(ring) / 3.0);
+    for (int i = 0; i < SAMPLES_PER_RING; i++) {
+      float angle = 6.28318530718 * float(i) / float(SAMPLES_PER_RING);
+      vec2 offset = vec2(cos(angle), sin(angle)) * u_texelSize * ringRadius;
+      vec3 s = texture(u_image, uv + offset).rgb;
+      float sLum = dot(s, vec3(0.299, 0.587, 0.114));
+      sum += max(sLum - threshold, 0.0);
+      totalWeight += 1.0;
+    }
+  }
+  return sum / totalWeight;
+}
+
 void main() {
   vec4 texel = texture(u_image, v_texCoord);
 
@@ -144,11 +165,10 @@ void main() {
   // 11) 할레이션: 밝은 부분 주변에 붉은빛 번짐을 더합니다. (역광 필름 특유의 효과)
   // 슬라이더의 halationRadius(px)는 "체감 반경"으로 쓰기엔 너무 작아서, 여기서 몇 배 넓혀
   // 실제 사진 해상도에서도 눈에 보이는 번짐이 되도록 합니다.
-  vec3 glowForHalation = sampleGlow(v_texCoord, u_halationRadius * 4.0);
-  float glowLum = dot(glowForHalation, vec3(0.299, 0.587, 0.114));
-  // threshold 근처에서 값이 뚝 끊기지 않도록 전환 구간을 넓게 잡습니다.
-  float halationMask = smoothstep(u_halationThreshold - 0.3, 1.0, glowLum);
-  color += u_halationColor * halationMask * (u_halationAmount / 100.0) * 1.5;
+  // threshold보다 밝은 픽셀들의 "초과분"만 모아서 번지게 하므로, 중간 밝기의 넓은 배경(하늘,
+  // 벽 등)이 통째로 물드는 일 없이 진짜 밝은 지점 주변에서만 자연스럽게 번집니다.
+  float brightExcess = sampleBrightExcess(v_texCoord, u_halationRadius * 4.0, u_halationThreshold);
+  color += u_halationColor * brightExcess * (u_halationAmount / 100.0) * 4.0;
 
   // 12) 블룸/소프트 포커스: 전체적으로 은은하게 번진 빛을 더합니다.
   vec3 glowForBloom = sampleGlow(v_texCoord, 10.0);
