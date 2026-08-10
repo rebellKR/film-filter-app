@@ -5,10 +5,10 @@ function App() {
   return (
     <ScrollExpandMedia
       mediaType="image"
-      mediaSrc="/hero-media.jpg"
-      bgImageSrc="/hero-bg.jpg"
+      mediaSrc="/main.jpg"
+      bgImageSrc="/background.jpg"
       title="필름처럼, 오늘을"
-      date="film-filter-app"
+      date="フィルムの変換"
       scrollToExpand="스크롤해서 시작하기"
       textBlend
     >
