@@ -93,7 +93,7 @@ function FilterEditor() {
       <h1 className="text-xl font-semibold">HJ’s Film</h1>
 
       <label className="cursor-pointer rounded-full bg-neutral-800 px-5 py-2 text-sm hover:bg-neutral-700">
-        사진 선택
+        アルバムから選択
         <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
       </label>
 
@@ -102,7 +102,7 @@ function FilterEditor() {
           {/* 캔버스를 누르고 있는 동안 원본 사진과 비교해서 볼 수 있습니다. */}
           <canvas
             ref={canvasRef}
-            className="max-w-full h-auto rounded-lg border border-neutral-800 select-none touch-none"
+            className="max-w-full max-h-[65dvh] w-auto h-auto rounded-lg border border-neutral-800 select-none touch-none"
             onPointerDown={() => setShowOriginal(true)}
             onPointerUp={() => setShowOriginal(false)}
             onPointerLeave={() => setShowOriginal(false)}
@@ -168,7 +168,7 @@ function FilterEditor() {
           </button>
         </>
       ) : (
-        <p className="text-neutral-500 text-sm">사진을 선택하면 여기에 표시됩니다.</p>
+        <p className="text-neutral-500 text-sm">選択するとこちらに表示されます。</p>
       )}
     </div>
   )
