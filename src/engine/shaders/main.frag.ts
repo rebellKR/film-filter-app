@@ -109,7 +109,7 @@ void main() {
   vec3 color = texel.rgb;
 
   // 1) 색온도: 빨강을 올리고 파랑을 내리면 따뜻하게, 반대로 하면 차갑게 보입니다.
-  float tempShift = u_temperature / 100.0 * 0.1;
+  float tempShift = u_temperature / 100.0 * 0.22;
   color.r += tempShift;
   color.b -= tempShift;
 
@@ -167,12 +167,12 @@ void main() {
   // 실제 사진 해상도에서도 눈에 보이는 번짐이 되도록 합니다.
   // threshold보다 밝은 픽셀들의 "초과분"만 모아서 번지게 하므로, 중간 밝기의 넓은 배경(하늘,
   // 벽 등)이 통째로 물드는 일 없이 진짜 밝은 지점 주변에서만 자연스럽게 번집니다.
-  float brightExcess = sampleBrightExcess(v_texCoord, u_halationRadius * 4.0, u_halationThreshold);
-  color += u_halationColor * brightExcess * (u_halationAmount / 100.0) * 4.0;
+  float brightExcess = sampleBrightExcess(v_texCoord, u_halationRadius * 2.0, u_halationThreshold);
+  color += u_halationColor * brightExcess * (u_halationAmount / 100.0) * 1.2;
 
   // 12) 블룸/소프트 포커스: 전체적으로 은은하게 번진 빛을 더합니다.
-  vec3 glowForBloom = sampleGlow(v_texCoord, 10.0);
-  color += glowForBloom * (u_bloomAmount / 100.0) * 0.3;
+  vec3 glowForBloom = sampleGlow(v_texCoord, 6.0);
+  color += glowForBloom * (u_bloomAmount / 100.0) * 0.15;
 
   // 13) 비네팅: 가장자리로 갈수록 어둡게 만듭니다.
   vec2 centered = v_texCoord - 0.5;
