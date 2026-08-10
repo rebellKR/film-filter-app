@@ -8,7 +8,8 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// 화면 오른쪽 위에 떠 있는, 유리처럼 반투명한 가로형 음악 플레이어입니다.
+// 가로로 긴 음악 플레이어 바입니다. TitleBar 안에 들어가는 용도라 자체 배경/위치는 없고,
+// 컨트롤(이전/재생/다음 + 진행바)만 담당합니다.
 // 자동재생은 하지 않습니다 — 사용자가 재생 버튼을 직접 누르므로
 // 브라우저의 "소리 있는 자동재생 차단" 정책에 아예 걸릴 일이 없습니다.
 function MusicPlayer() {
@@ -63,7 +64,7 @@ function MusicPlayer() {
   }
 
   return (
-    <div className="fixed top-3 right-3 z-50 flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-neutral-100 shadow-lg shadow-black/20 backdrop-blur-xl w-[240px] sm:w-[320px]">
+    <div className="flex items-center gap-2 text-neutral-100 w-[200px] sm:w-[280px]">
       <audio
         ref={audioRef}
         src={track.src}
@@ -75,7 +76,7 @@ function MusicPlayer() {
       <button
         type="button"
         onClick={() => playRelative(-1)}
-        aria-label="이전 곡"
+        aria-label="前の曲"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-neutral-200 transition hover:bg-white/15"
       >
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
@@ -86,7 +87,7 @@ function MusicPlayer() {
       <button
         type="button"
         onClick={togglePlay}
-        aria-label={isPlaying ? '일시정지' : '재생'}
+        aria-label={isPlaying ? '一時停止' : '再生'}
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 text-neutral-900 transition hover:bg-white"
       >
         {isPlaying ? (
@@ -103,7 +104,7 @@ function MusicPlayer() {
       <button
         type="button"
         onClick={() => playRelative(1)}
-        aria-label="다음 곡"
+        aria-label="次の曲"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-neutral-200 transition hover:bg-white/15"
       >
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">

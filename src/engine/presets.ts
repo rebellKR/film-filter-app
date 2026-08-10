@@ -184,12 +184,12 @@ const MONO_PARAMS: FilterParams = {
 }
 
 export const PRESETS: Preset[] = [
-  { id: 'original', name: '원본', params: ORIGINAL_PARAMS },
-  { id: 'tomorrow', name: '내일의 너', params: TOMORROW_PARAMS },
-  { id: 'portra', name: '포트라 400', params: PORTRA_PARAMS },
-  { id: 'superia', name: '수페리아 400', params: SUPERIA_PARAMS },
-  { id: 'gold', name: '골드 200', params: GOLD_PARAMS },
-  { id: 'cinestill', name: '시네스틸 800T', params: CINESTILL_PARAMS },
-  { id: 'natura', name: '나츄라 1600', params: NATURA_PARAMS },
-  { id: 'mono', name: '흑백 (HP5)', params: MONO_PARAMS },
+  { id: 'original', name: 'オリジナル', params: ORIGINAL_PARAMS },
+  { id: 'tomorrow', name: '明日の君', params: TOMORROW_PARAMS },
+  { id: 'portra', name: 'ポートラ400', params: PORTRA_PARAMS },
+  { id: 'superia', name: 'スペリア400', params: SUPERIA_PARAMS },
+  { id: 'gold', name: 'ゴールド200', params: GOLD_PARAMS },
+  { id: 'cinestill', name: 'シネスティル800T', params: CINESTILL_PARAMS },
+  { id: 'natura', name: 'ナチュラ1600', params: NATURA_PARAMS },
+  { id: 'mono', name: '白黒(HP5)', params: MONO_PARAMS },
 ]
