@@ -90,7 +90,7 @@ function FilterEditor() {
 
   return (
     <div className="text-neutral-100 flex flex-col items-center gap-6">
-      <h1 className="text-xl font-semibold">film-filter-app</h1>
+      <h1 className="text-xl font-semibold">HJ’s Film</h1>
 
       <label className="cursor-pointer rounded-full bg-neutral-800 px-5 py-2 text-sm hover:bg-neutral-700">
         사진 선택
@@ -115,11 +115,10 @@ function FilterEditor() {
                 key={preset.id}
                 type="button"
                 onClick={() => handleSelectPreset(preset.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm ${
-                  presetId === preset.id
-                    ? 'bg-neutral-100 text-neutral-900'
-                    : 'bg-neutral-800 hover:bg-neutral-700'
-                }`}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm ${presetId === preset.id
+                  ? 'bg-neutral-100 text-neutral-900'
+                  : 'bg-neutral-800 hover:bg-neutral-700'
+                  }`}
               >
                 {preset.name}
               </button>

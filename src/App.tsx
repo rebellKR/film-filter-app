@@ -1,18 +1,20 @@
 import ScrollExpandMedia from './components/ScrollExpandMedia'
 import FilterEditor from './components/FilterEditor'
-import AudioToggle from './components/AudioToggle'
+import HomeButton from './components/HomeButton'
+import MusicPlayer from './components/MusicPlayer'
 
 function App() {
   return (
     <>
-      <AudioToggle />
+      <HomeButton />
+      <MusicPlayer />
       <ScrollExpandMedia
         mediaType="image"
         mediaSrc="/main.jpg"
         bgImageSrc="/background.jpg"
-        title="필름처럼, 오늘을"
-        date="フィルムの変換"
-        scrollToExpand="스크롤해서 시작하기"
+        title="レトロの 魅力"
+        date="レトロの色彩に染まる"
+        scrollToExpand="スクロールしてスタート"
         textBlend
       >
         <FilterEditor />
