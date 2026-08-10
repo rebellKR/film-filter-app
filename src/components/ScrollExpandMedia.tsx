@@ -202,7 +202,7 @@ const ScrollExpandMedia = ({
                   </div>
                 )}
 
-                <div className="flex flex-col items-center text-center relative z-10 mt-4 transition-none">
+                <div className="font-jp flex flex-col items-center text-center relative z-10 mt-4 transition-none">
                   {date && (
                     <p className="text-2xl text-amber-50" style={{ transform: `translateX(-${textTranslateX}vw)` }}>
                       {date}
@@ -220,7 +220,7 @@ const ScrollExpandMedia = ({
               </div>
 
               <div
-                className={`flex items-center justify-center text-center gap-4 w-full relative z-10 transition-none flex-col ${
+                className={`font-jp flex items-center justify-center text-center gap-4 w-full relative z-10 transition-none flex-col ${
                   textBlend ? 'mix-blend-difference' : 'mix-blend-normal'
                 }`}
               >

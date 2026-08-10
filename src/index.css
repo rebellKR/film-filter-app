@@ -12,3 +12,8 @@ body {
   color: #f2f2f2;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* 히어로의 일본어 타이틀/캡션에 쓰는 빈티지한 느낌의 명조체 */
+.font-jp {
+  font-family: "Shippori Mincho", serif;
+}
