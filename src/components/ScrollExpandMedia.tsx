@@ -14,6 +14,8 @@ interface ScrollExpandMediaProps {
   // mediaType="image"일 때만 씁니다. 미디어가 완전히 확장되면(mediaFullyExpanded)
   // 정지 이미지 위로 이 영상이 서서히 크로스페이드됩니다. (예: 사진 → 열차가 움직이는 영상)
   expandedVideoSrc?: string
+  // 미디어가 완전히 확장되는 그 순간 한 번 재생되는 효과음입니다. (예: 열차 소리)
+  expandSoundSrc?: string
 }
 
 // 스크롤(또는 모바일에서 위로 스와이프)하면 중앙의 미디어가 점점 커지면서
@@ -31,6 +33,7 @@ const ScrollExpandMedia = ({
   textBlend,
   children,
   expandedVideoSrc,
+  expandSoundSrc,
 }: ScrollExpandMediaProps) => {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [showContent, setShowContent] = useState(false)
@@ -41,6 +44,45 @@ const ScrollExpandMedia = ({
   const [expandedVideoReady, setExpandedVideoReady] = useState(false)
 
   const sectionRef = useRef<HTMLDivElement | null>(null)
+  const expandSoundRef = useRef<HTMLAudioElement | null>(null)
+
+  // 완전히 확장되는 "그 순간"에만 한 번 울리도록, wheel/touch 이벤트 핸들러 밖에서
+  // mediaFullyExpanded를 지켜보지 않고 이벤트 콜백 안에서 직접 호출합니다.
+  // (사용자 제스처 이벤트 안에서 바로 play()를 불러야 브라우저의 자동재생 차단을 피할 수 있습니다.)
+  const playExpandSound = () => {
+    const audio = expandSoundRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    audio.play().catch(() => {})
+  }
+
+  // 브라우저는 wheel/touchmove 같은 "연속" 제스처로는 소리 자동재생을 허용하지 않습니다.
+  // (click, touchend처럼 명확한 단발성 동작만 인정) 그래서 페이지에서 처음 클릭/탭이
+  // 일어나는 순간 소리 없이 재생→즉시 정지를 한 번 해둬서, 이후 스크롤 중 실제로
+  // playExpandSound()를 호출할 때는 막히지 않고 바로 재생되도록 "잠금 해제"합니다.
+  useEffect(() => {
+    if (!expandSoundSrc) return
+
+    const unlock = () => {
+      const audio = expandSoundRef.current
+      if (audio) {
+        audio
+          .play()
+          .then(() => audio.pause())
+          .catch(() => {})
+        audio.currentTime = 0
+      }
+      window.removeEventListener('click', unlock)
+      window.removeEventListener('touchend', unlock)
+    }
+
+    window.addEventListener('click', unlock)
+    window.addEventListener('touchend', unlock)
+    return () => {
+      window.removeEventListener('click', unlock)
+      window.removeEventListener('touchend', unlock)
+    }
+  }, [expandSoundSrc])
 
   useEffect(() => {
     setScrollProgress(0)
@@ -60,6 +102,7 @@ const ScrollExpandMedia = ({
         setScrollProgress(newProgress)
 
         if (newProgress >= 1) {
+          if (!mediaFullyExpanded) playExpandSound()
           setMediaFullyExpanded(true)
           setShowContent(true)
         } else if (newProgress < 0.75) {
@@ -90,6 +133,7 @@ const ScrollExpandMedia = ({
         setScrollProgress(newProgress)
 
         if (newProgress >= 1) {
+          if (!mediaFullyExpanded) playExpandSound()
           setMediaFullyExpanded(true)
           setShowContent(true)
         } else if (newProgress < 0.75) {
@@ -145,6 +189,7 @@ const ScrollExpandMedia = ({
 
   return (
     <div ref={sectionRef} className="transition-colors duration-700 ease-in-out overflow-x-hidden">
+      {expandSoundSrc && <audio ref={expandSoundRef} src={expandSoundSrc} preload="auto" />}
       <section className="relative flex flex-col items-center justify-start min-h-[100dvh]">
         <div className="relative w-full flex flex-col items-center min-h-[100dvh]">
           <motion.div

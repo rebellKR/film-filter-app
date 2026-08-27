@@ -10,6 +10,7 @@ function App() {
         mediaType="image"
         mediaSrc="/main.jpg"
         expandedVideoSrc="/main-video.mp4"
+        expandSoundSrc="/train-sound.mp3"
         bgImageSrc="/background.jpg"
         title="レトロの 魅力"
         date="レトロの色彩に染まる"
