@@ -9,6 +9,7 @@ function App() {
       <ScrollExpandMedia
         mediaType="image"
         mediaSrc="/main.jpg"
+        expandedVideoSrc="/main-video.mp4"
         bgImageSrc="/background.jpg"
         title="レトロの 魅力"
         date="レトロの色彩に染まる"

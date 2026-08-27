@@ -11,6 +11,9 @@ interface ScrollExpandMediaProps {
   scrollToExpand?: string
   textBlend?: boolean
   children?: ReactNode
+  // mediaType="image"일 때만 씁니다. 미디어가 완전히 확장되면(mediaFullyExpanded)
+  // 정지 이미지 위로 이 영상이 서서히 크로스페이드됩니다. (예: 사진 → 열차가 움직이는 영상)
+  expandedVideoSrc?: string
 }
 
 // 스크롤(또는 모바일에서 위로 스와이프)하면 중앙의 미디어가 점점 커지면서
@@ -27,12 +30,15 @@ const ScrollExpandMedia = ({
   scrollToExpand,
   textBlend,
   children,
+  expandedVideoSrc,
 }: ScrollExpandMediaProps) => {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [showContent, setShowContent] = useState(false)
   const [mediaFullyExpanded, setMediaFullyExpanded] = useState(false)
   const [touchStartY, setTouchStartY] = useState(0)
   const [isMobileState, setIsMobileState] = useState(false)
+  // 영상이 재생 가능할 만큼 로드되기 전에 미리 살짝 보이면 어색하므로, 준비됐을 때만 페이드인합니다.
+  const [expandedVideoReady, setExpandedVideoReady] = useState(false)
 
   const sectionRef = useRef<HTMLDivElement | null>(null)
 
@@ -193,6 +199,19 @@ const ScrollExpandMedia = ({
                 ) : (
                   <div className="relative w-full h-full">
                     <img src={mediaSrc} alt={title || 'Media content'} className="w-full h-full object-cover rounded-xl" />
+                    {expandedVideoSrc && (
+                      <video
+                        src={expandedVideoSrc}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="auto"
+                        onCanPlay={() => setExpandedVideoReady(true)}
+                        className="absolute inset-0 w-full h-full object-cover rounded-xl transition-opacity duration-1000 ease-in-out"
+                        style={{ opacity: mediaFullyExpanded && expandedVideoReady ? 1 : 0 }}
+                      />
+                    )}
                     <motion.div
                       className="absolute inset-0 bg-black/50 rounded-xl"
                       initial={{ opacity: 0.7 }}
