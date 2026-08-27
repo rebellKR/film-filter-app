@@ -57,21 +57,26 @@ const ScrollExpandMedia = ({
   }
 
   // 브라우저는 wheel/touchmove 같은 "연속" 제스처로는 소리 자동재생을 허용하지 않습니다.
-  // (click, touchend처럼 명확한 단발성 동작만 인정) 그래서 페이지에서 처음 클릭/탭이
-  // 일어나는 순간 소리 없이 재생→즉시 정지를 한 번 해둬서, 이후 스크롤 중 실제로
+  // (click, touchend처럼 명확한 단발성 동작만 인정) 그래서 click/touchend가 한 번이라도
+  // 일어나는 순간 소리 없이 재생→즉시 정지를 해둬서, 이후 스크롤 중 실제로
   // playExpandSound()를 호출할 때는 막히지 않고 바로 재생되도록 "잠금 해제"합니다.
+  // 문제는 사용자가 스크롤만 하고 페이지 어디도 클릭하지 않을 수 있다는 점이라, 아래
+  // 카드에도 onClick으로 같은 함수를 걸어서 클릭할 계기를 하나 더 만들어 둡니다.
+  const unlockExpandSound = () => {
+    const audio = expandSoundRef.current
+    if (!audio) return
+    audio
+      .play()
+      .then(() => audio.pause())
+      .catch(() => {})
+    audio.currentTime = 0
+  }
+
   useEffect(() => {
     if (!expandSoundSrc) return
 
     const unlock = () => {
-      const audio = expandSoundRef.current
-      if (audio) {
-        audio
-          .play()
-          .then(() => audio.pause())
-          .catch(() => {})
-        audio.currentTime = 0
-      }
+      unlockExpandSound()
       window.removeEventListener('click', unlock)
       window.removeEventListener('touchend', unlock)
     }
@@ -211,6 +216,7 @@ const ScrollExpandMedia = ({
             <div className="flex flex-col items-center justify-center w-full h-[100dvh] relative">
               <div
                 className="absolute z-0 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-none rounded-2xl"
+                onClick={unlockExpandSound}
                 style={{
                   width: `${mediaWidth}px`,
                   height: `${mediaHeight}px`,
