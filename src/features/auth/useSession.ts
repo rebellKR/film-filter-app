@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../../lib/supabaseClient'
 
 // 현재 로그인 세션을 구독합니다. 새로고침해도 supabase가 로컬에 저장해둔
 // 세션을 읽어와서 로그인 상태를 이어갑니다.

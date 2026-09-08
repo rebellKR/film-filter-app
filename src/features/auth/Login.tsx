@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../../lib/supabaseClient'
 
 // 비밀번호 없이, 이메일로 받은 링크를 누르면 로그인되는 매직링크 방식입니다.
 function Login() {

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabaseClient'
-import type { Word } from '../types/word'
+import { supabase } from '../../lib/supabaseClient'
+import type { Word } from './types'
 
 interface WordNotebookProps {
   session: Session
