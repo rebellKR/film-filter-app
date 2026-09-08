@@ -1,11 +1,11 @@
 import ScrollExpandMedia from './components/ScrollExpandMedia'
 import FilterEditor from './components/FilterEditor'
-import TitleBar from './components/TitleBar'
+import HomeButton from './components/HomeButton'
 
 function App() {
   return (
     <>
-      <TitleBar />
+      <HomeButton />
       <ScrollExpandMedia
         mediaType="image"
         mediaSrc="/main.jpg"

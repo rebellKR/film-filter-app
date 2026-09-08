@@ -44,6 +44,7 @@ const ScrollExpandMedia = ({
   const [expandedVideoReady, setExpandedVideoReady] = useState(false)
 
   const sectionRef = useRef<HTMLDivElement | null>(null)
+  const heroSectionRef = useRef<HTMLDivElement | null>(null)
   const expandSoundRef = useRef<HTMLAudioElement | null>(null)
 
   // 완전히 확장되는 "그 순간"에만 한 번 울리도록, wheel/touch 이벤트 핸들러 밖에서
@@ -87,6 +88,24 @@ const ScrollExpandMedia = ({
       window.removeEventListener('click', unlock)
       window.removeEventListener('touchend', unlock)
     }
+  }, [expandSoundSrc])
+
+  // 히어로(=열차 영상이 있는 영역)가 화면에서 완전히 벗어나면 소리를 멈춥니다.
+  // 계속 아래로 스크롤해서 편집기 화면으로 넘어갔는데도 열차 소리만 배경에 남아있으면 안 되니까요.
+  useEffect(() => {
+    const el = heroSectionRef.current
+    if (!el || !expandSoundSrc) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          expandSoundRef.current?.pause()
+        }
+      },
+      { threshold: 0 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [expandSoundSrc])
 
   useEffect(() => {
@@ -213,7 +232,7 @@ const ScrollExpandMedia = ({
           </motion.div>
 
           <div className="container mx-auto flex flex-col items-center justify-start relative z-10">
-            <div className="flex flex-col items-center justify-center w-full h-[100dvh] relative">
+            <div ref={heroSectionRef} className="flex flex-col items-center justify-center w-full h-[100dvh] relative">
               <div
                 className="absolute z-0 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-none rounded-2xl"
                 onClick={unlockExpandSound}
